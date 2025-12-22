@@ -17,12 +17,13 @@ import com.system.vetcare.controller.filter.JwtAuthenticationFilter;
 public class SecurityConfig {
  
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http, JwtAuthenticationFilter jwtAuthFilter) throws Exception {
+    public SecurityFilterChain filterChain(final HttpSecurity http,
+            final JwtAuthenticationFilter jwtAuthenticationFilter) throws Exception {
         http.csrf().disable()
           .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                    .and()
                    .anonymous().disable()
-                   .addFilterBefore(jwtAuthFilter, FilterSecurityInterceptor.class)
+                   .addFilterBefore(jwtAuthenticationFilter, FilterSecurityInterceptor.class)
                    .authorizeHttpRequests()
                    .antMatchers("/api/v1/security/login").permitAll()
                    .antMatchers("/api/v1/security/registration").permitAll()
