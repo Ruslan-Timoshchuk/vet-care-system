@@ -14,14 +14,17 @@ import static org.springframework.http.HttpHeaders.SET_COOKIE;
 import static org.springframework.util.StringUtils.startsWithIgnoreCase;
 import static java.util.Collections.*;
 import static java.util.Objects.nonNull;
+import java.util.List;
 import java.util.Map;
 import javax.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import com.system.vetcare.service.JwtCookiesService;
 import com.system.vetcare.service.JwtService;
+import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -41,14 +44,14 @@ public class JwtCookiesServiceImpl implements JwtCookiesService {
     private final JwtService jwtService;
     
     @Override
-    public HttpHeaders issueJwtCookies(String email) {
+    public HttpHeaders issueJwtCookies(String email, List<SimpleGrantedAuthority> authorities) {
         HttpHeaders headers = new HttpHeaders();
         headers.add(SET_COOKIE, buildCookie(ACCESS_TOKEN,
-                format(JWT_FORMAT, BEARER_TOKEN_TYPE, jwtService.generateToken(email, accessTokenLifeTime)), ABSOLUTE_API_PATH,
+                format(JWT_FORMAT, BEARER_TOKEN_TYPE, jwtService.generateToken(email, authorities, accessTokenLifeTime)), ABSOLUTE_API_PATH,
                 jwtCookieLifeTime));
         headers.add(SET_COOKIE, buildCookie(REFRESH_TOKEN,
                 format(JWT_FORMAT, BEARER_TOKEN_TYPE,
-                        jwtService.generateToken(email, refreshTokenLifeTime)), SECURITY_API_PATH,
+                        jwtService.generateToken(email, authorities, refreshTokenLifeTime)), SECURITY_API_PATH,
                         jwtCookieLifeTime));
         return headers;
     }
@@ -57,15 +60,18 @@ public class JwtCookiesServiceImpl implements JwtCookiesService {
     public HttpHeaders refreshJwtCookies(Cookie[] cookies) {
     	 HttpHeaders headers = new HttpHeaders();
          Map<String, String> jwtTokens = extractJwtTokens(cookies);
-         if (jwtTokens.containsKey(REFRESH_TOKEN) && !jwtService.tokenIsBlacklisted(REFRESH_TOKEN)) {
+         if (jwtTokens.containsKey(REFRESH_TOKEN) && !jwtService.isBlacklisted(REFRESH_TOKEN)) {
  			final String refreshToken = jwtTokens.get(REFRESH_TOKEN);
- 			final String email = jwtService.parse(refreshToken).getSubject();
+ 			jwtService.isValid(refreshToken);
  			jwtService.addTokenToBlacklist(refreshToken);
  			if(jwtTokens.containsKey(ACCESS_TOKEN)) {
  				final String accessToken = jwtTokens.get(ACCESS_TOKEN);
+ 				jwtService.isValid(accessToken);
+ 				Claims claims = jwtService.extractClaims(accessToken);
  				jwtService.addTokenToBlacklist(accessToken);
+ 				return issueJwtCookies(jwtService.extractEmail(claims), jwtService.extractAuthorities(claims));
  			}
- 			return issueJwtCookies(email);
+ 			
          }
     	 return headers;
     }
