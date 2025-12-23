@@ -2,40 +2,60 @@ package com.system.vetcare.service.impl;
 
 import static java.lang.System.*;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
+import com.system.vetcare.domain.Authority;
 import com.system.vetcare.service.JwtService;
-import java.security.Key;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.Set;
+import javax.crypto.SecretKey;
 import java.util.HashSet;
-import java.util.Map;
-import static io.jsonwebtoken.security.Keys.*;
+import java.util.List;
 
 @Component
 public class JwtServiceImpl implements JwtService {
 	
-    public static final Key SECRET_KEY = secretKeyFor(SignatureAlgorithm.HS256);
+    public static final String AUTHORITIES_CLAIM = "authorities";
     
+    @Value("${jwt.issuer}")
+    private String jwtIssuer;
+    @Value("${jwt.signing.key}")
+    private String jwtSignKey;
     private final Set<String> tokenBlackList = new HashSet<>();
 
     @Override
-    public String generateToken(String userEmail, Integer validTime) {
-        Map<String, Object> claims = new HashMap<>();
+    public String generateToken(String userEmail, List<Authority> authorities, Integer validTime) {
         return Jwts.builder()
-                .setClaims(claims)
+                .setIssuer(jwtIssuer)
                 .setSubject(userEmail)
+                .claim(AUTHORITIES_CLAIM, authorities.stream().map(Authority::getAuthority).toList())
                 .setIssuedAt(new Date(currentTimeMillis()))
                 .setExpiration(new Date(currentTimeMillis() + validTime))
-                .signWith(SECRET_KEY)
+                .signWith(get())
                 .compact();
     }
     
     @Override
-    public boolean tokenIsBlacklisted(String token) {
+    public boolean isBlacklisted(String token) {
         return tokenBlackList.contains(token);
+    }
+    
+    @Override
+    public boolean isValid(String token) {
+        try {
+            Jwts.parserBuilder()
+            .setSigningKey(get())
+            .build()
+            .parseClaimsJws(token);
+            return true;
+        } catch (JwtException | IllegalArgumentException e) {
+            return false;
+        }
     }
     
     @Override
@@ -44,12 +64,36 @@ public class JwtServiceImpl implements JwtService {
     }
 
     @Override
-    public Claims parse(String token) {
+    public Claims extractClaims(String token) {
         return Jwts.parserBuilder()
-                .setSigningKey(SECRET_KEY)
+                .setSigningKey(get())
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
+    
+    @Override
+    public String extractEmail(Claims claims) {
+        return claims.getSubject();
+    }
+    
+    @Override
+    public List<SimpleGrantedAuthority> extractAuthorities(Claims claims) {
+        if (claims.get(AUTHORITIES_CLAIM) instanceof List<?> list) {
+            return list.stream()
+                     .map(String::valueOf)
+                     .map(SimpleGrantedAuthority::new).toList();
+        } else {
+            throw new JwtException("Invalid authorities claim: expected array");
+        }
+    }
+    
+    private SecretKey get() {
+        byte[] keyBytes = Decoders
+                            .BASE64
+                            .decode(jwtSignKey);
+        return Keys
+                 .hmacShaKeyFor(keyBytes);
     }
     
 }
