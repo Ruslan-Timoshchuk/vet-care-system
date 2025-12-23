@@ -2,12 +2,11 @@ package com.system.vetcare.service;
 
 import java.util.List;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import com.system.vetcare.domain.Authority;
 import io.jsonwebtoken.Claims;
 
 public interface JwtService {
     
-    String generateToken(String userEmail, List<Authority> authorities,
+    String generateToken(String userEmail, List<SimpleGrantedAuthority> authorities,
             Integer validTime);
     
     boolean isValid(String token);

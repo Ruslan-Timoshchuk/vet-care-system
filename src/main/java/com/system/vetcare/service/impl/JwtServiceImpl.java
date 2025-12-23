@@ -9,7 +9,6 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
-import com.system.vetcare.domain.Authority;
 import com.system.vetcare.service.JwtService;
 import java.util.Date;
 import java.util.Set;
@@ -29,11 +28,11 @@ public class JwtServiceImpl implements JwtService {
     private final Set<String> tokenBlackList = new HashSet<>();
 
     @Override
-    public String generateToken(String userEmail, List<Authority> authorities, Integer validTime) {
+    public String generateToken(String userEmail, List<SimpleGrantedAuthority> authorities, Integer validTime) {
         return Jwts.builder()
                 .setIssuer(jwtIssuer)
                 .setSubject(userEmail)
-                .claim(AUTHORITIES_CLAIM, authorities.stream().map(Authority::getAuthority).toList())
+                .claim(AUTHORITIES_CLAIM, authorities.stream().map(SimpleGrantedAuthority::getAuthority).toList())
                 .setIssuedAt(new Date(currentTimeMillis()))
                 .setExpiration(new Date(currentTimeMillis() + validTime))
                 .signWith(get())

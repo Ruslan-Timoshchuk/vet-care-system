@@ -12,6 +12,7 @@ import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
 import org.springframework.security.core.SpringSecurityCoreVersion;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -69,8 +70,15 @@ public class User implements UserDetails {
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
 
+    @Override
     public String getUsername() {
         return this.email;
     }
    
+    @Override
+    public List<SimpleGrantedAuthority> getAuthorities() {
+        return this.authorities.stream().map(authority -> new SimpleGrantedAuthority(authority.getAuthority()))
+                .toList();
+    }
+    
 }
