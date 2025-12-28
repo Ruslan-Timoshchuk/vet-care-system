@@ -1,8 +1,6 @@
 package com.system.vetcare.service.impl;
 
-import static com.system.vetcare.payload.JwtMarkers.ACCESS_TOKEN;
-import static com.system.vetcare.payload.JwtMarkers.BEARER_TOKEN_TYPE;
-import static com.system.vetcare.payload.JwtMarkers.REFRESH_TOKEN;
+import static com.system.vetcare.payload.JwtMarkers.*;
 import static com.system.vetcare.controller.constants.AuthenticationUrl.*;
 import static java.lang.String.format;
 import static java.net.URLDecoder.decode;

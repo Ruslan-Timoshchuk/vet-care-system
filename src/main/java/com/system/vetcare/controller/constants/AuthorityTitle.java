@@ -1,11 +1,12 @@
 package com.system.vetcare.controller.constants;
 
-public final class AuthorityTitle {
+import lombok.experimental.UtilityClass;
 
-    private AuthorityTitle() {}
+@UtilityClass
+public final class AuthorityTitle {
     
-    public static final String MANAGER = "MANAGER";
-    public static final String OWNER = "OWNER";
-    public static final String VETERINARIAN = "VETERINARIAN";
+    public final String MANAGER = "MANAGER";
+    public final String OWNER = "OWNER";
+    public final String VETERINARIAN = "VETERINARIAN";
     
 }

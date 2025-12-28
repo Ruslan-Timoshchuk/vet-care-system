@@ -2,7 +2,6 @@ package com.system.vetcare.service.impl;
 
 import static java.time.LocalDateTime.now;
 import static java.lang.String.format;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -13,7 +12,6 @@ import com.system.vetcare.repository.UserRepository;
 import com.system.vetcare.service.AuthorityService;
 import com.system.vetcare.service.UserService;
 import com.system.vetcare.service.strategy.UserProfileResolver;
-
 import lombok.RequiredArgsConstructor;
 
 @Service
@@ -47,7 +45,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+    public User loadUserByUsername(String email) {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException(format(USER_EMAIL_DOES_NOT_EXISTS, email)));
     }

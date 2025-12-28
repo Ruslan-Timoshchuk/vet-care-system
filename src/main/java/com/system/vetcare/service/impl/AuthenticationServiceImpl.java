@@ -21,7 +21,6 @@ import com.system.vetcare.payload.response.UserProfileDetails;
 import com.system.vetcare.service.AuthenticationService;
 import com.system.vetcare.service.UserService;
 import com.system.vetcare.service.strategy.UserProfileResolver;
-
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -52,13 +51,13 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     
     @Override
     public User resolvePrincipal(AuthenticationRequest credential) {
-        User principal = (User) userService.loadUserByUsername(credential.email());
+        User principal = userService.loadUserByUsername(credential.email());
         if (principal.isAccountNonLocked()) {
             validateCredentials(credential, principal);
+            return principal;
         } else {
             throw new LockedException(ACCOUNT_HAS_BEEN_LOCKED);
-        }    
-        return principal;
+        }
     }
     
     @Override

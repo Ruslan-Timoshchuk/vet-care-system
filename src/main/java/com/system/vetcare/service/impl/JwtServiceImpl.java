@@ -32,7 +32,7 @@ public class JwtServiceImpl implements JwtService {
         return Jwts.builder()
                 .setIssuer(jwtIssuer)
                 .setSubject(userEmail)
-                .claim(AUTHORITIES_CLAIM, authorities.stream().map(SimpleGrantedAuthority::getAuthority).toList())
+                .claim(AUTHORITIES_CLAIM, authorities)
                 .setIssuedAt(new Date(currentTimeMillis()))
                 .setExpiration(new Date(currentTimeMillis() + validTime))
                 .signWith(get())

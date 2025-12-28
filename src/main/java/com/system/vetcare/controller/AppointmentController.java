@@ -1,6 +1,6 @@
 package com.system.vetcare.controller;
 
-import static com.system.vetcare.controller.constants.AuthorityTitle.OWNER;
+import static com.system.vetcare.controller.constants.AuthorityTitle.*;
 import static org.springframework.http.HttpStatus.CREATED;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.annotation.Secured;
