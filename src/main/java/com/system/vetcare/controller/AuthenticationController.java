@@ -74,7 +74,8 @@ public class AuthenticationController {
     @PostMapping(VALIDATE_EMAIL)
     public ResponseEntity<UserEmailValidationResponse> validateUserEmail(
             @RequestBody UserEmailValidationRequest userEmailValidationRequest) {
-        return ResponseEntity.ok(usernameValidator.usernameIsAlreadyTaken(userEmailValidationRequest));
+        return ResponseEntity
+                 .ok(usernameValidator.usernameIsAlreadyTaken(userEmailValidationRequest));
     }
     
 }

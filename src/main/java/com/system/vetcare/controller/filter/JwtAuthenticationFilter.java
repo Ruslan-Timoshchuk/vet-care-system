@@ -42,11 +42,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
 	private void validateAccessTokenRequest(HttpServletRequest request) {
-		Map<String, String> jwtTokens = cookiesService.extractJwtTokens(request.getCookies());
+		final Map<String, String> jwtTokens = cookiesService.extractJwtTokens(request.getCookies());
 		if (jwtTokens.containsKey(ACCESS_TOKEN)) {
 			final String jwtAccessToken = jwtTokens.get(ACCESS_TOKEN);
 			if (jwtService.isValid(jwtAccessToken) && !jwtService.isBlacklisted(jwtAccessToken)) {
-			    Claims claims = jwtService.extractClaims(jwtAccessToken);
+			    final Claims claims = jwtService.extractClaims(jwtAccessToken);
 				final String email = jwtService.extractEmail(claims);
 				final List<SimpleGrantedAuthority> authorities = jwtService.extractAuthorities(claims);
 				if (!email.isBlank() && SecurityContextHolder.getContext().getAuthentication() == null) {

@@ -1,17 +1,16 @@
 package com.system.vetcare.controller.constants;
 
+import lombok.experimental.UtilityClass;
+
+@UtilityClass
 public final class AuthenticationUrl {
 
-	public static final String ABSOLUTE_API_PATH = "/";
-	public static final String SECURITY_API_PATH = "/api/v1/security";
-	public static final String USER_REGISTRATION = "/registration";
-	public static final String USER_LOGIN = "/login";
-	public static final String USER_LOGOUT = "/logout";
-	public static final String REFRESH_JWT_TOKEN = "/refresh";
-	public static final String VALIDATE_EMAIL = "/validate_email";
-
-	private AuthenticationUrl() {
-		throw new UnsupportedOperationException("This is a utility class and cannot be instantiated");
-	}
+	public final String ABSOLUTE_API_PATH = "/";
+	public final String SECURITY_API_PATH = "/api/v1/security";
+	public final String USER_REGISTRATION = "/registration";
+	public final String USER_LOGIN = "/login";
+	public final String USER_LOGOUT = "/logout";
+	public final String REFRESH_JWT_TOKEN = "/refresh";
+	public final String VALIDATE_EMAIL = "/validate_email";
 
 }
