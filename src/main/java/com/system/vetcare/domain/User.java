@@ -70,7 +70,7 @@ public class User {
         return this.email;
     }
    
-    public List<SimpleGrantedAuthority> getAuthorities() {
+    public List<SimpleGrantedAuthority> getGrantedAuthorities() {
         return this.authorities.stream().map(authority -> new SimpleGrantedAuthority(authority.getAuthority()))
                 .toList();
     }
