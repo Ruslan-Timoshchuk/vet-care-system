@@ -35,7 +35,7 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> performRegistration(
             @RequestBody RegistrationRequest registrationRequest) {
         User user = userService.save(registrationRequest);
-        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getUsername(), user.getAuthorities());
+        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getUsername(), user.getGrantedAuthorities());
         AuthenticationResponse authenticationResponse = authenticationService.buildAuthenticationResponse(user);
         return ResponseEntity
                 .status(CREATED)
@@ -47,7 +47,7 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> performLogIn(@RequestBody AuthenticationRequest credential) {
         User user = authenticationService.resolvePrincipal(credential);
         AuthenticationResponse authenticationResponse = authenticationService.buildAuthenticationResponse(user);
-        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getUsername(), user.getAuthorities());
+        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getUsername(), user.getGrantedAuthorities());
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(authenticationResponse);
