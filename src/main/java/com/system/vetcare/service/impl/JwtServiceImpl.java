@@ -3,6 +3,7 @@ package com.system.vetcare.service.impl;
 import static java.lang.System.*;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
@@ -10,6 +11,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
 import com.system.vetcare.service.JwtService;
 import java.util.Date;
 import java.util.Set;
@@ -32,15 +34,15 @@ public class JwtServiceImpl implements JwtService {
     public String generateToken(String userEmail, List<SimpleGrantedAuthority> authorities, Integer validTime) {
         return Jwts
                  .builder()
-                 .setIssuer(jwtIssuer)
-                 .setSubject(userEmail)
+                 .issuer(jwtIssuer)
+                 .subject(userEmail)
                  .claim(AUTHORITIES_CLAIM, 
                         authorities
                           .stream()
                           .map(GrantedAuthority::getAuthority)
                           .toList())
-                 .setIssuedAt(new Date(currentTimeMillis()))
-                 .setExpiration(new Date(currentTimeMillis() + validTime))
+                 .issuedAt(new Date(currentTimeMillis()))
+                 .expiration(new Date(currentTimeMillis() + validTime))
                  .signWith(get())
                  .compact();
     }
@@ -52,18 +54,9 @@ public class JwtServiceImpl implements JwtService {
     
     @Override
     public boolean isValid(String token) {
-        try {
-            Jwts
-              .parserBuilder()
-              .setSigningKey(get())
-              .build()
-              .parseClaimsJws(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException e) {
-            return false;
-        }
+        return StringUtils.hasText(token);
     }
-    
+
     @Override
     public void addTokenToBlacklist(String token) {
         tokenBlackList.add(token);
@@ -71,17 +64,19 @@ public class JwtServiceImpl implements JwtService {
 
     @Override
     public Claims extractClaims(String token) {
-        return Jwts
-                 .parserBuilder()
-                 .setSigningKey(get())
-                 .build()
-                 .parseClaimsJws(token)
-                 .getBody();
+        return getJwtParser()
+                 .parseSignedClaims(token)
+                 .getPayload();
     }
     
     @Override
     public String extractEmail(Claims claims) {
-        return claims.getSubject();
+        String email = claims.getSubject();
+        if (StringUtils.hasText(email)) {
+            return email;
+        } else {
+            throw new IllegalArgumentException("Email claim is missing or blank");
+        }  
     }
     
     @Override
@@ -95,6 +90,14 @@ public class JwtServiceImpl implements JwtService {
             throw new JwtException("Invalid authorities claim: expected array");
         }
     }
+    
+    private JwtParser getJwtParser() {
+        return Jwts
+                 .parser()
+                 .verifyWith(get())
+                 .build();
+    }
+    
     
     private SecretKey get() {
         byte[] keyBytes = Decoders
