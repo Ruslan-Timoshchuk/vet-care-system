@@ -53,11 +53,6 @@ public class JwtServiceImpl implements JwtService {
     }
     
     @Override
-    public boolean isValid(String token) {
-        return StringUtils.hasText(token);
-    }
-
-    @Override
     public void addTokenToBlacklist(String token) {
         tokenBlackList.add(token);
     }

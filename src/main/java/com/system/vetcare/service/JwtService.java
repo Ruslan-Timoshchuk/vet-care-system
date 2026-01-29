@@ -9,8 +9,6 @@ public interface JwtService {
     String generateToken(String userEmail, List<SimpleGrantedAuthority> authorities,
             Integer validTime);
     
-    boolean isValid(String token);
-    
     boolean isBlacklisted(String token);
       
     void addTokenToBlacklist(String token);
