@@ -73,15 +73,12 @@ public class JwtCookiesServiceImpl implements JwtCookiesService {
 
     @Override
     public HttpHeaders revokeJwtCookies(Cookie[] cookies) {
-        HttpHeaders headers = new HttpHeaders();
-        Map<String, String> jwtTokens = extractJwtTokens(cookies);
-        if (jwtTokens.containsKey(ACCESS_TOKEN)) {
-            final String accessToken = jwtTokens.get(ACCESS_TOKEN);
-            jwtService.addTokenToBlacklist(accessToken);
-        } else if (jwtTokens.containsKey(REFRESH_TOKEN)) {
-            final String refreshToken = jwtTokens.get(REFRESH_TOKEN);
+        final HttpHeaders headers = new HttpHeaders();
+        final Map<String, String> jwtTokens = extractJwtTokens(cookies);
+        final String refreshToken = jwtTokens.get(REFRESH_TOKEN);
+        if (hasText(refreshToken)) {
             jwtService.addTokenToBlacklist(refreshToken);
-        }
+        }      
         headers.add(SET_COOKIE, buildCookie(ACCESS_TOKEN, EMPTY_STRING, ABSOLUTE_API_PATH, 0));
         headers.add(SET_COOKIE, buildCookie(REFRESH_TOKEN, EMPTY_STRING, SECURITY_API_PATH, 0));
         return headers;
@@ -103,8 +100,15 @@ public class JwtCookiesServiceImpl implements JwtCookiesService {
     }
 
     private String buildCookie(String name, String value, String path, Integer lifeTime) {
-        return ResponseCookie.from(name, encode(value, UTF_8)).httpOnly(true).secure(true).sameSite(LIMIT_THE_SCOPE)
-                .path(path).maxAge(lifeTime).build().toString();
+        return ResponseCookie
+                 .from(name, encode(value, UTF_8))
+                 .httpOnly(true)
+                 .secure(true)
+                 .sameSite(LIMIT_THE_SCOPE)
+                 .path(path)
+                 .maxAge(lifeTime)
+                 .build()
+                 .toString();
     }
 
 }
