@@ -2,6 +2,7 @@ package com.system.vetcare.service.impl;
 
 import static com.system.vetcare.payload.JwtMarkers.*;
 import static com.system.vetcare.controller.constants.AuthenticationUrl.*;
+import static org.springframework.util.StringUtils.hasText;
 import static java.lang.String.format;
 import static java.net.URLDecoder.decode;
 import static java.net.URLEncoder.encode;
@@ -28,11 +29,11 @@ import lombok.RequiredArgsConstructor;
 @Component
 @RequiredArgsConstructor
 public class JwtCookiesServiceImpl implements JwtCookiesService {
-   
+
     public static final String JWT_FORMAT = "%s %s";
     public static final String EMPTY_STRING = "";
     public static final String LIMIT_THE_SCOPE = "None";
-    
+
     @Value("${access.token.life.time}")
     private Integer accessTokenLifeTime;
     @Value("${refresh.token.life.time}")
@@ -40,55 +41,48 @@ public class JwtCookiesServiceImpl implements JwtCookiesService {
     @Value("${jwt.cookie.life.time}")
     private Integer jwtCookieLifeTime;
     private final JwtService jwtService;
-    
+
     @Override
     public HttpHeaders issueJwtCookies(String email, List<SimpleGrantedAuthority> authorities) {
         HttpHeaders headers = new HttpHeaders();
-        headers.add(SET_COOKIE, buildCookie(ACCESS_TOKEN,
-                format(JWT_FORMAT, BEARER_TOKEN_TYPE, jwtService.generateToken(email, authorities, accessTokenLifeTime)), ABSOLUTE_API_PATH,
-                jwtCookieLifeTime));
-        headers.add(SET_COOKIE, buildCookie(REFRESH_TOKEN,
-                format(JWT_FORMAT, BEARER_TOKEN_TYPE,
-                        jwtService.generateToken(email, authorities, refreshTokenLifeTime)), SECURITY_API_PATH,
-                        jwtCookieLifeTime));
+        headers.add(SET_COOKIE,
+                buildCookie(ACCESS_TOKEN,
+                        format(JWT_FORMAT, BEARER_TOKEN_TYPE,
+                                jwtService.generateToken(email, authorities, accessTokenLifeTime)),
+                        ABSOLUTE_API_PATH, jwtCookieLifeTime));
+        headers.add(SET_COOKIE,
+                buildCookie(REFRESH_TOKEN,
+                        format(JWT_FORMAT, BEARER_TOKEN_TYPE,
+                                jwtService.generateToken(email, authorities, refreshTokenLifeTime)),
+                        SECURITY_API_PATH, jwtCookieLifeTime));
         return headers;
     }
-    
+
     @Override
     public HttpHeaders refreshJwtCookies(Cookie[] cookies) {
-    	 HttpHeaders headers = new HttpHeaders();
-         Map<String, String> jwtTokens = extractJwtTokens(cookies);
-         if (jwtTokens.containsKey(REFRESH_TOKEN) && !jwtService.isBlacklisted(REFRESH_TOKEN)) {
- 			final String refreshToken = jwtTokens.get(REFRESH_TOKEN);
- 			jwtService.isValid(refreshToken);
- 			jwtService.addTokenToBlacklist(refreshToken);
- 			if(jwtTokens.containsKey(ACCESS_TOKEN)) {
- 				final String accessToken = jwtTokens.get(ACCESS_TOKEN);
- 				jwtService.isValid(accessToken);
- 				Claims claims = jwtService.extractClaims(accessToken);
- 				jwtService.addTokenToBlacklist(accessToken);
- 				return issueJwtCookies(jwtService.extractEmail(claims), jwtService.extractAuthorities(claims));
- 			}
- 			
-         }
-    	 return headers;
+        final Map<String, String> jwtTokens = extractJwtTokens(cookies);
+        final String refreshToken = jwtTokens.get(REFRESH_TOKEN);
+        if (hasText(refreshToken) && !jwtService.isBlacklisted(refreshToken)) {
+            final Claims claims = jwtService.extractClaims(refreshToken);
+            jwtService.addTokenToBlacklist(refreshToken);
+            return issueJwtCookies(jwtService.extractEmail(claims), jwtService.extractAuthorities(claims));
+        } else {
+            return new HttpHeaders();
+        }
     }
-    
-	@Override
-	public HttpHeaders revokeJwtCookies(Cookie[] cookies) {
-		HttpHeaders headers = new HttpHeaders();
-		Map<String, String> jwtTokens = extractJwtTokens(cookies);
-		if (jwtTokens.containsKey(ACCESS_TOKEN)) {
-			final String accessToken = jwtTokens.get(ACCESS_TOKEN);
-			jwtService.addTokenToBlacklist(accessToken);
-		} if (jwtTokens.containsKey(REFRESH_TOKEN)) {
-			final String refreshToken = jwtTokens.get(REFRESH_TOKEN);
-			jwtService.addTokenToBlacklist(refreshToken);
-		}
-		headers.add(SET_COOKIE, buildCookie(ACCESS_TOKEN, EMPTY_STRING, ABSOLUTE_API_PATH, 0));
-		headers.add(SET_COOKIE, buildCookie(REFRESH_TOKEN, EMPTY_STRING, SECURITY_API_PATH, 0));
-		return headers;
-	}
+
+    @Override
+    public HttpHeaders revokeJwtCookies(Cookie[] cookies) {
+        final HttpHeaders headers = new HttpHeaders();
+        final Map<String, String> jwtTokens = extractJwtTokens(cookies);
+        final String refreshToken = jwtTokens.get(REFRESH_TOKEN);
+        if (hasText(refreshToken)) {
+            jwtService.addTokenToBlacklist(refreshToken);
+        }      
+        headers.add(SET_COOKIE, buildCookie(ACCESS_TOKEN, EMPTY_STRING, ABSOLUTE_API_PATH, 0));
+        headers.add(SET_COOKIE, buildCookie(REFRESH_TOKEN, EMPTY_STRING, SECURITY_API_PATH, 0));
+        return headers;
+    }
 
     @Override
     public Map<String, String> extractJwtTokens(Cookie[] cookies) {
@@ -104,17 +98,17 @@ public class JwtCookiesServiceImpl implements JwtCookiesService {
             return emptyMap();
         }
     }
-    
-	 private String buildCookie(String name, String value, String path, Integer lifeTime) {  
-	        return ResponseCookie
-	        		.from(name, encode(value, UTF_8))
-	                .httpOnly(true)
-	                .secure(true)
-	                .sameSite(LIMIT_THE_SCOPE)
-	                .path(path)
-	                .maxAge(lifeTime)
-	                .build()
-	                .toString();
-	    }  
- 
+
+    private String buildCookie(String name, String value, String path, Integer lifeTime) {
+        return ResponseCookie
+                 .from(name, encode(value, UTF_8))
+                 .httpOnly(true)
+                 .secure(true)
+                 .sameSite(LIMIT_THE_SCOPE)
+                 .path(path)
+                 .maxAge(lifeTime)
+                 .build()
+                 .toString();
+    }
+
 }

@@ -1,6 +1,8 @@
 package com.system.vetcare.controller.filter;
 
 import static com.system.vetcare.payload.JwtMarkers.*;
+import static java.util.Objects.isNull;
+import static org.springframework.util.StringUtils.hasText;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -11,8 +13,11 @@ import javax.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.lang.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
@@ -34,29 +39,32 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
-            validateAccessTokenRequest(request);
+            final SecurityContext securityContext = SecurityContextHolder.getContext();
+            if (isNull(securityContext.getAuthentication())) {
+                final Map<String, String> jwtTokens = cookiesService.extractJwtTokens(request.getCookies());
+                final String jwtAccessToken = jwtTokens.get(ACCESS_TOKEN);
+                if (hasText(jwtAccessToken) && !jwtService.isBlacklisted(jwtAccessToken)) {
+                    final WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetailsSource()
+                            .buildDetails(request);
+                    final Authentication authentication = buildAuthenticationToken(jwtAccessToken,
+                            webAuthenticationDetails);
+                    securityContext.setAuthentication(authentication);
+                }
+            }
             filterChain.doFilter(request, response);
         } catch (JwtException e) {
             handlerExceptionResolver.resolveException(request, response, null, e);
         }
     }
 
-	private void validateAccessTokenRequest(HttpServletRequest request) {
-		final Map<String, String> jwtTokens = cookiesService.extractJwtTokens(request.getCookies());
-		if (jwtTokens.containsKey(ACCESS_TOKEN)) {
-			final String jwtAccessToken = jwtTokens.get(ACCESS_TOKEN);
-			if (jwtService.isValid(jwtAccessToken) && !jwtService.isBlacklisted(jwtAccessToken)) {
-			    final Claims claims = jwtService.extractClaims(jwtAccessToken);
-				final String email = jwtService.extractEmail(claims);
-				final List<SimpleGrantedAuthority> authorities = jwtService.extractAuthorities(claims);
-				if (!email.isBlank() && SecurityContextHolder.getContext().getAuthentication() == null) {
-					UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
-					        email, null, authorities);
-					authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
-					SecurityContextHolder.getContext().setAuthentication(authenticationToken);
-				}
-			}
-		}
-	}
-	
+    private Authentication buildAuthenticationToken(final String accessToken, final WebAuthenticationDetails details) {
+        final Claims claims = jwtService.extractClaims(accessToken);
+        final String email = jwtService.extractEmail(claims);
+        final List<SimpleGrantedAuthority> authorities = jwtService.extractAuthorities(claims);
+        final UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email,
+                null, authorities);
+        authenticationToken.setDetails(details);
+        return authenticationToken;
+    }
+
 }
