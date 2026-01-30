@@ -1,6 +1,7 @@
 package com.system.vetcare.controller;
 
 import static org.springframework.http.HttpStatus.*;
+import java.util.Set;
 import static com.system.vetcare.controller.constants.AuthenticationUrl.*;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
@@ -16,6 +17,7 @@ import com.system.vetcare.payload.request.UserEmailValidationRequest;
 import com.system.vetcare.payload.response.AuthenticationResponse;
 import com.system.vetcare.payload.response.UserEmailValidationResponse;
 import com.system.vetcare.service.AuthenticationService;
+import com.system.vetcare.service.AuthorityService;
 import com.system.vetcare.service.JwtCookiesService;
 import com.system.vetcare.service.UserService;
 import com.system.vetcare.service.UsernameValidator;
@@ -27,6 +29,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthenticationController {
 
     private final UserService userService;
+    private final AuthorityService authorityService;
     private final JwtCookiesService jwtCookiesService;
     private final UsernameValidator usernameValidator;
     private final AuthenticationService authenticationService;
@@ -35,7 +38,8 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> performRegistration(
             @RequestBody RegistrationRequest registrationRequest) {
         User user = userService.save(registrationRequest);
-        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getUsername(), user.getGrantedAuthorities());
+        Set<String> authorityNames = authorityService.toAuthorityNames(user.getAuthorities());
+        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getEmail(), authorityNames);
         AuthenticationResponse authenticationResponse = authenticationService.buildAuthenticationResponse(user);
         return ResponseEntity
                 .status(CREATED)
@@ -47,7 +51,8 @@ public class AuthenticationController {
     public ResponseEntity<AuthenticationResponse> performLogIn(@RequestBody AuthenticationRequest credential) {
         User user = authenticationService.resolvePrincipal(credential);
         AuthenticationResponse authenticationResponse = authenticationService.buildAuthenticationResponse(user);
-        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getUsername(), user.getGrantedAuthorities());
+        Set<String> authorityNames = authorityService.toAuthorityNames(user.getAuthorities());
+        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getEmail(), authorityNames);
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(authenticationResponse);
