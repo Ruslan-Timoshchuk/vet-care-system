@@ -66,19 +66,19 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     }
     
     private void validateCredentials(AuthenticationRequest credential, User principal) {
-        if (accountlockTime.containsKey(principal.getUsername()) && accountlockTime.get(principal.getUsername()).isAfter(now())) {
+        if (accountlockTime.containsKey(principal.getEmail()) && accountlockTime.get(principal.getEmail()).isAfter(now())) {
             throw new LockedException(format(ACCOUNT_HAS_BEEN_LOCKED_DUE_TO_FAILED_ATTEMPTS, maxFailedAttempts,
-                    MINUTES.between(now(), accountlockTime.get(principal.getUsername())) % 60));
+                    MINUTES.between(now(), accountlockTime.get(principal.getEmail())) % 60));
         }
         if (!passwordEncoder.matches(credential.password(), principal.getPassword())) {
-            int actualFailedAttempts = failedAttempts.merge(principal.getUsername(), 1, Integer::sum);
-            if (failedAttempts.get(principal.getUsername()) == maxFailedAttempts) {
-                accountlockTime.put(principal.getUsername(), now().plusMinutes(lockDurationMinutes));
-                failedAttempts.put(principal.getUsername(), 0);
+            int actualFailedAttempts = failedAttempts.merge(principal.getEmail(), 1, Integer::sum);
+            if (failedAttempts.get(principal.getEmail()) == maxFailedAttempts) {
+                accountlockTime.put(principal.getEmail(), now().plusMinutes(lockDurationMinutes));
+                failedAttempts.put(principal.getEmail(), 0);
             }
             throw new BadCredentialsException(format(INCORRECT_PASSWORD, actualFailedAttempts));
         } else {
-            failedAttempts.put(principal.getUsername(), 0);  
+            failedAttempts.put(principal.getEmail(), 0);  
             userService.updateLoginTimestamp(principal); 
         }
     }

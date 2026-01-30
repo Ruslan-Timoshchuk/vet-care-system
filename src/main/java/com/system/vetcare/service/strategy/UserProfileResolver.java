@@ -20,15 +20,15 @@ public class UserProfileResolver {
     }
 
     public List<UserProfileDetails> resolveUserProfiles(User user) {
-        return user.getGrantedAuthorities().stream().map(authority -> {
-            UserProfileResolverStrategy strategy = strategies.get(EAuthority.valueOf(authority.getAuthority()));
+        return user.getAuthorities().stream().map(authority -> {
+            UserProfileResolverStrategy strategy = strategies.get(authority.getTitle());
             return strategy.resolveUserProfileDetails(user.getId());
         }).toList();
     }
 
     public void saveUserProfiles(User user) {
-        user.getGrantedAuthorities().forEach(authority -> {
-            UserProfileResolverStrategy strategy = strategies.get(EAuthority.valueOf(authority.getAuthority()));
+        user.getAuthorities().forEach(authority -> {
+            UserProfileResolverStrategy strategy = strategies.get(authority.getTitle());
             strategy.saveProfileForUser(user);
         });
     }

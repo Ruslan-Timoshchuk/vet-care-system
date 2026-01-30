@@ -1,22 +1,20 @@
 package com.system.vetcare.service;
 
-import java.util.List;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import java.util.Set;
 import io.jsonwebtoken.Claims;
 
 public interface JwtService {
-    
-    String generateToken(String userEmail, List<SimpleGrantedAuthority> authorities,
-            Integer validTime);
-    
+
+    String generateToken(String userEmail, Set<String> authorityNames, Integer validTime);
+
     boolean isBlacklisted(String token);
-      
+
     void addTokenToBlacklist(String token);
 
     Claims extractClaims(String token);
 
     String extractEmail(Claims claims);
 
-    List<SimpleGrantedAuthority> extractAuthorities(Claims claims);
+    Set<String> extractAuthorityNames(Claims claims);
 
 }

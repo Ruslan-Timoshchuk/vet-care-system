@@ -11,17 +11,14 @@ import lombok.*;
 @NoArgsConstructor
 @Entity
 @Table(name = "authorities")
+@EqualsAndHashCode(of = { "id", "title" })
 public class Authority {
-    
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;
 
     @Enumerated(EnumType.STRING)
     private EAuthority title;
-
-    public String getAuthority() {
-        return title.name();
-    }
 
 }

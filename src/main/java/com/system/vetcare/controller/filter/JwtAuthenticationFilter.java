@@ -4,8 +4,8 @@ import static com.system.vetcare.payload.JwtMarkers.*;
 import static java.util.Objects.isNull;
 import static org.springframework.util.StringUtils.hasText;
 import java.io.IOException;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
@@ -22,6 +22,7 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
+import com.system.vetcare.service.AuthorityService;
 import com.system.vetcare.service.JwtCookiesService;
 import com.system.vetcare.service.JwtService;
 import io.jsonwebtoken.Claims;
@@ -33,6 +34,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final JwtCookiesService cookiesService;
+    private final AuthorityService authorityService;
     private final HandlerExceptionResolver handlerExceptionResolver;
 
     @Override
@@ -57,10 +59,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
-    private Authentication buildAuthenticationToken(final String accessToken, final WebAuthenticationDetails details) {
+    private Authentication buildAuthenticationToken(String accessToken, WebAuthenticationDetails details) {
         final Claims claims = jwtService.extractClaims(accessToken);
         final String email = jwtService.extractEmail(claims);
-        final List<SimpleGrantedAuthority> authorities = jwtService.extractAuthorities(claims);
+        final Set<String> authorityNames = jwtService.extractAuthorityNames(claims);
+        final Set<SimpleGrantedAuthority> authorities = authorityService.toGrantedAuthorities(authorityNames);
         final UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email,
                 null, authorities);
         authenticationToken.setDetails(details);

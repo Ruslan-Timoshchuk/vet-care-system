@@ -13,13 +13,12 @@ import static org.springframework.http.HttpHeaders.SET_COOKIE;
 import static org.springframework.util.StringUtils.startsWithIgnoreCase;
 import static java.util.Collections.*;
 import static java.util.Objects.nonNull;
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import com.system.vetcare.service.JwtCookiesService;
 import com.system.vetcare.service.JwtService;
@@ -43,17 +42,17 @@ public class JwtCookiesServiceImpl implements JwtCookiesService {
     private final JwtService jwtService;
 
     @Override
-    public HttpHeaders issueJwtCookies(String email, List<SimpleGrantedAuthority> authorities) {
+    public HttpHeaders issueJwtCookies(String email, Set<String> authorityNames) {
         HttpHeaders headers = new HttpHeaders();
         headers.add(SET_COOKIE,
                 buildCookie(ACCESS_TOKEN,
                         format(JWT_FORMAT, BEARER_TOKEN_TYPE,
-                                jwtService.generateToken(email, authorities, accessTokenLifeTime)),
+                                jwtService.generateToken(email, authorityNames, accessTokenLifeTime)),
                         ABSOLUTE_API_PATH, jwtCookieLifeTime));
         headers.add(SET_COOKIE,
                 buildCookie(REFRESH_TOKEN,
                         format(JWT_FORMAT, BEARER_TOKEN_TYPE,
-                                jwtService.generateToken(email, authorities, refreshTokenLifeTime)),
+                                jwtService.generateToken(email, authorityNames, refreshTokenLifeTime)),
                         SECURITY_API_PATH, jwtCookieLifeTime));
         return headers;
     }
@@ -65,7 +64,7 @@ public class JwtCookiesServiceImpl implements JwtCookiesService {
         if (hasText(refreshToken) && !jwtService.isBlacklisted(refreshToken)) {
             final Claims claims = jwtService.extractClaims(refreshToken);
             jwtService.addTokenToBlacklist(refreshToken);
-            return issueJwtCookies(jwtService.extractEmail(claims), jwtService.extractAuthorities(claims));
+            return issueJwtCookies(jwtService.extractEmail(claims), jwtService.extractAuthorityNames(claims));
         } else {
             return new HttpHeaders();
         }
