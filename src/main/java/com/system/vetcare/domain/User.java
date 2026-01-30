@@ -1,7 +1,7 @@
 package com.system.vetcare.domain;
 
 import java.time.LocalDateTime;
-import java.util.List;
+import java.util.Set;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
@@ -11,7 +11,6 @@ import javax.persistence.JoinColumn;
 import javax.persistence.JoinTable;
 import javax.persistence.ManyToMany;
 import javax.persistence.Table;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -50,7 +49,7 @@ public class User {
     @ManyToMany
     @JoinTable(name = "user_authorities", joinColumns = @JoinColumn(name = "user_id", referencedColumnName = "id"),
             inverseJoinColumns = @JoinColumn(name = "authority_id", referencedColumnName = "id"))
-    private List<Authority> authorities;
+    private Set<Authority> authorities;
    
     @Column(name = "account_non_expired")
     private boolean accountNonExpired;
@@ -65,14 +64,5 @@ public class User {
     
     @Column(name = "last_login")
     private LocalDateTime lastLogin;
-
-    public String getUsername() {
-        return this.email;
-    }
-   
-    public List<SimpleGrantedAuthority> getGrantedAuthorities() {
-        return this.authorities.stream().map(authority -> new SimpleGrantedAuthority(authority.getAuthority()))
-                .toList();
-    }
     
 }
