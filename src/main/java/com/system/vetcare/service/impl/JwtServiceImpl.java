@@ -1,6 +1,7 @@
 package com.system.vetcare.service.impl;
 
 import static java.lang.System.*;
+import static java.util.stream.Collectors.toUnmodifiableSet;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.JwtParser;
@@ -8,8 +9,6 @@ import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import com.system.vetcare.service.JwtService;
@@ -31,16 +30,12 @@ public class JwtServiceImpl implements JwtService {
     private final Set<String> tokenBlackList = new HashSet<>();
 
     @Override
-    public String generateToken(String userEmail, List<SimpleGrantedAuthority> authorities, Integer validTime) {
+    public String generateToken(String userEmail, Set<String> authorityNames, Integer validTime) {
         return Jwts
                  .builder()
                  .issuer(jwtIssuer)
                  .subject(userEmail)
-                 .claim(AUTHORITIES_CLAIM, 
-                        authorities
-                          .stream()
-                          .map(GrantedAuthority::getAuthority)
-                          .toList())
+                 .claim(AUTHORITIES_CLAIM, authorityNames)
                  .issuedAt(new Date(currentTimeMillis()))
                  .expiration(new Date(currentTimeMillis() + validTime))
                  .signWith(get())
@@ -75,12 +70,12 @@ public class JwtServiceImpl implements JwtService {
     }
     
     @Override
-    public List<SimpleGrantedAuthority> extractAuthorities(Claims claims) {
+    public Set<String> extractAuthorityNames(Claims claims) {
         if (claims.get(AUTHORITIES_CLAIM) instanceof List<?> list) {
             return list
                      .stream()
                      .map(String::valueOf)
-                     .map(SimpleGrantedAuthority::new).toList();
+                     .collect(toUnmodifiableSet());
         } else {
             throw new JwtException("Invalid authorities claim: expected array");
         }

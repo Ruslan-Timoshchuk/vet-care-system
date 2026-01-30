@@ -1,14 +1,13 @@
 package com.system.vetcare.service;
 
-import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import javax.servlet.http.Cookie;
 import org.springframework.http.HttpHeaders;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 public interface JwtCookiesService {
 
-    HttpHeaders issueJwtCookies(String email, List<SimpleGrantedAuthority> authorities);
+    HttpHeaders issueJwtCookies(String email, Set<String> authorityNames);
 
     HttpHeaders refreshJwtCookies(Cookie[] cookies);
 
