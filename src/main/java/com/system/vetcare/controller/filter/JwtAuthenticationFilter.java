@@ -23,6 +23,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import com.system.vetcare.service.AuthorityService;
+import com.system.vetcare.service.JwtClaimsExtractor;
 import com.system.vetcare.service.JwtCookiesService;
 import com.system.vetcare.service.JwtService;
 import io.jsonwebtoken.Claims;
@@ -33,7 +34,8 @@ import io.jsonwebtoken.JwtException;
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
-    private final JwtCookiesService cookiesService;
+    private final JwtClaimsExtractor jwtClaimsExtractor;
+    private final JwtCookiesService jwtCookiesService;
     private final AuthorityService authorityService;
     private final HandlerExceptionResolver handlerExceptionResolver;
 
@@ -43,7 +45,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             final SecurityContext securityContext = SecurityContextHolder.getContext();
             if (isNull(securityContext.getAuthentication())) {
-                final Map<String, String> jwtTokens = cookiesService.extractJwtTokens(request.getCookies());
+                final Map<String, String> jwtTokens = jwtCookiesService.extractJwtTokens(request.getCookies());
                 final String jwtAccessToken = jwtTokens.get(ACCESS_TOKEN);
                 if (hasText(jwtAccessToken) && !jwtService.isBlacklisted(jwtAccessToken)) {
                     final WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetailsSource()
@@ -60,7 +62,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     }
 
     private Authentication buildAuthenticationToken(String accessToken, WebAuthenticationDetails details) {
-        final Claims claims = jwtService.extractClaims(accessToken);
+        final Claims claims = jwtClaimsExtractor.extractAccessTokenClaims(accessToken);
         final String email = jwtService.extractEmail(claims);
         final Set<String> authorityNames = jwtService.extractAuthorityNames(claims);
         final Set<SimpleGrantedAuthority> authorities = authorityService.toGrantedAuthorities(authorityNames);

@@ -2,7 +2,7 @@ package com.system.vetcare.service;
 
 import io.jsonwebtoken.Claims;
 
-public interface JwtClaimExtractor {
+public interface JwtClaimsExtractor {
 
     Claims extractAccessTokenClaims(String token);
 

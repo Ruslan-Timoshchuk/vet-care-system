@@ -2,7 +2,7 @@ package com.system.vetcare.service.impl;
 
 import javax.crypto.SecretKey;
 import org.springframework.stereotype.Service;
-import com.system.vetcare.service.JwtClaimExtractor;
+import com.system.vetcare.service.JwtClaimsExtractor;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
@@ -10,7 +10,7 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class JwtClaimExtractorImpl implements JwtClaimExtractor {
+public class JwtClaimsExtractorImpl implements JwtClaimsExtractor {
 
     private final SecretKey accessTokenSecretKey;
     private final SecretKey refreshTokenSecretKey;
