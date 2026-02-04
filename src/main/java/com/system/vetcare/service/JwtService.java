@@ -5,13 +5,13 @@ import io.jsonwebtoken.Claims;
 
 public interface JwtService {
 
-    String generateToken(String userEmail, Set<String> authorityNames, Integer validTime);
+    String generateAccessToken(String userEmail, Set<String> authorityNames);
+    
+    String generateRefreshToken(String userEmail);
 
     boolean isBlacklisted(String token);
 
     void addTokenToBlacklist(String token);
-
-    Claims extractClaims(String token);
 
     String extractEmail(Claims claims);
 

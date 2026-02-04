@@ -2,43 +2,60 @@ package com.system.vetcare.service.impl;
 
 import static java.lang.System.*;
 import static java.util.stream.Collectors.toUnmodifiableSet;
+import java.security.Key;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import com.system.vetcare.service.JwtService;
 import java.util.Date;
 import java.util.Set;
-import javax.crypto.SecretKey;
 import java.util.HashSet;
 import java.util.List;
 
 @Component
+@RequiredArgsConstructor
 public class JwtServiceImpl implements JwtService {
 	
     public static final String AUTHORITIES_CLAIM = "authorities";
     
     @Value("${jwt.issuer}")
     private String jwtIssuer;
-    @Value("${jwt.signing.key}")
-    private String jwtSignKey;
+    @Value("${access.token.life.time}")
+    private Integer accessTokenLifeTime;
+    @Value("${refresh.token.life.time}")
+    private Integer refreshTokenLifeTime; 
+    
+    private final Key accessTokenSecretKey;
+    private final Key refreshTokenSecretKey;
+    
     private final Set<String> tokenBlackList = new HashSet<>();
 
     @Override
-    public String generateToken(String userEmail, Set<String> authorityNames, Integer validTime) {
+    public String generateAccessToken(String userEmail, Set<String> authorityNames) {
         return Jwts
                  .builder()
                  .issuer(jwtIssuer)
                  .subject(userEmail)
                  .claim(AUTHORITIES_CLAIM, authorityNames)
                  .issuedAt(new Date(currentTimeMillis()))
-                 .expiration(new Date(currentTimeMillis() + validTime))
-                 .signWith(get())
+                 .expiration(new Date(currentTimeMillis() + accessTokenLifeTime))
+                 .signWith(accessTokenSecretKey)
+                 .compact();
+    }
+    
+    @Override
+    public String generateRefreshToken(String userEmail) {
+        return Jwts
+                 .builder()
+                 .issuer(jwtIssuer)
+                 .subject(userEmail)
+                 .issuedAt(new Date(currentTimeMillis()))
+                 .expiration(new Date(currentTimeMillis() + refreshTokenLifeTime))
+                 .signWith(refreshTokenSecretKey)
                  .compact();
     }
     
@@ -52,13 +69,6 @@ public class JwtServiceImpl implements JwtService {
         tokenBlackList.add(token);
     }
 
-    @Override
-    public Claims extractClaims(String token) {
-        return getJwtParser()
-                 .parseSignedClaims(token)
-                 .getPayload();
-    }
-    
     @Override
     public String extractEmail(Claims claims) {
         String email = claims.getSubject();
@@ -79,22 +89,6 @@ public class JwtServiceImpl implements JwtService {
         } else {
             throw new JwtException("Invalid authorities claim: expected array");
         }
-    }
-    
-    private JwtParser getJwtParser() {
-        return Jwts
-                 .parser()
-                 .verifyWith(get())
-                 .build();
-    }
-    
-    
-    private SecretKey get() {
-        byte[] keyBytes = Decoders
-                            .BASE64
-                            .decode(jwtSignKey);
-        return Keys
-                 .hmacShaKeyFor(keyBytes);
     }
     
 }
