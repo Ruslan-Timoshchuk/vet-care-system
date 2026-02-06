@@ -21,6 +21,9 @@ import java.util.List;
 public class JwtServiceImpl implements JwtService {
 	
     public static final String AUTHORITIES_CLAIM = "authorities";
+    public static final String TOKEN_TYPE_CLAIM = "type";
+    public static final String ACCESS_TOKEN_TYPE = "access";
+    public static final String REFRESH_TOKEN_TYPE = "refresh";
     
     @Value("${jwt.issuer}")
     private String jwtIssuer;
@@ -40,6 +43,7 @@ public class JwtServiceImpl implements JwtService {
                  .builder()
                  .issuer(jwtIssuer)
                  .subject(userEmail)
+                 .claim(TOKEN_TYPE_CLAIM, ACCESS_TOKEN_TYPE)
                  .claim(AUTHORITIES_CLAIM, authorityNames)
                  .issuedAt(new Date(currentTimeMillis()))
                  .expiration(new Date(currentTimeMillis() + accessTokenLifeTime))
@@ -53,6 +57,7 @@ public class JwtServiceImpl implements JwtService {
                  .builder()
                  .issuer(jwtIssuer)
                  .subject(userEmail)
+                 .claim(TOKEN_TYPE_CLAIM, REFRESH_TOKEN_TYPE)
                  .issuedAt(new Date(currentTimeMillis()))
                  .expiration(new Date(currentTimeMillis() + refreshTokenLifeTime))
                  .signWith(refreshTokenSecretKey)
