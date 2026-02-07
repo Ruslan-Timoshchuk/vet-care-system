@@ -25,7 +25,7 @@ import org.springframework.web.servlet.HandlerExceptionResolver;
 import com.system.vetcare.service.AuthorityService;
 import com.system.vetcare.service.JwtClaimsExtractor;
 import com.system.vetcare.service.JwtCookiesService;
-import com.system.vetcare.service.JwtService;
+import com.system.vetcare.service.JwtTokenBlacklistService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 
@@ -33,7 +33,7 @@ import io.jsonwebtoken.JwtException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtService jwtService;
+    private final JwtTokenBlacklistService jwtTokenBlacklistService;
     private final JwtClaimsExtractor jwtClaimsExtractor;
     private final JwtCookiesService jwtCookiesService;
     private final AuthorityService authorityService;
@@ -47,7 +47,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (isNull(securityContext.getAuthentication())) {
                 final Map<String, String> jwtTokens = jwtCookiesService.extractJwtTokens(request.getCookies());
                 final String jwtAccessToken = jwtTokens.get(ACCESS_TOKEN);
-                if (hasText(jwtAccessToken) && !jwtService.isBlacklisted(jwtAccessToken)) {
+                if (hasText(jwtAccessToken) && !jwtTokenBlacklistService.isBlacklisted(jwtAccessToken)) {
                     final WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetailsSource()
                             .buildDetails(request);
                     final Authentication authentication = buildAuthenticationToken(jwtAccessToken,
@@ -63,8 +63,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private Authentication buildAuthenticationToken(String accessToken, WebAuthenticationDetails details) {
         final Claims claims = jwtClaimsExtractor.extractAccessTokenClaims(accessToken);
-        final String email = jwtService.extractEmail(claims);
-        final Set<String> authorityNames = jwtService.extractAuthorityNames(claims);
+        final String email = jwtClaimsExtractor.extractEmail(claims);
+        final Set<String> authorityNames = jwtClaimsExtractor.extractAuthorityNames(claims);
         final Set<SimpleGrantedAuthority> authorities = authorityService.toGrantedAuthorities(authorityNames);
         final UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(email,
                 null, authorities);
