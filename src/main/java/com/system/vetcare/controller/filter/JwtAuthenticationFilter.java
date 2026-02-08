@@ -2,9 +2,7 @@ package com.system.vetcare.controller.filter;
 
 import static com.system.vetcare.payload.JwtMarkers.*;
 import static java.util.Objects.isNull;
-import static org.springframework.util.StringUtils.hasText;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Set;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
@@ -45,9 +43,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         try {
             final SecurityContext securityContext = SecurityContextHolder.getContext();
             if (isNull(securityContext.getAuthentication())) {
-                final Map<String, String> jwtTokens = jwtCookiesService.extractJwtTokens(request.getCookies());
-                final String jwtAccessToken = jwtTokens.get(ACCESS_TOKEN);
-                if (hasText(jwtAccessToken) && !jwtTokenBlacklistService.isBlacklisted(jwtAccessToken)) {
+                final String jwtAccessToken = jwtCookiesService.extractJwtToken(request.getCookies(), ACCESS_TOKEN);
+                if (!jwtTokenBlacklistService.isBlacklisted(jwtAccessToken)) {
                     final WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetailsSource()
                             .buildDetails(request);
                     final Authentication authentication = buildAuthenticationToken(jwtAccessToken,
