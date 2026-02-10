@@ -2,27 +2,22 @@ package com.system.vetcare.service.impl;
 
 import static com.system.vetcare.payload.JwtMarkers.*;
 import static com.system.vetcare.controller.constants.AuthenticationUrl.*;
-import static org.springframework.util.StringUtils.hasText;
 import static java.lang.String.format;
 import static java.net.URLDecoder.decode;
 import static java.net.URLEncoder.encode;
 import static java.nio.charset.StandardCharsets.UTF_8;
-import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toMap;
 import static org.springframework.http.HttpHeaders.SET_COOKIE;
 import static org.springframework.util.StringUtils.startsWithIgnoreCase;
-import static java.util.Collections.*;
 import static java.util.Objects.nonNull;
-import java.util.Map;
-import java.util.Set;
 import javax.servlet.http.Cookie;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Component;
+import org.springframework.util.StringUtils;
+import com.system.vetcare.domain.JwtAuthenticationToken;
 import com.system.vetcare.service.JwtCookiesService;
-import com.system.vetcare.service.JwtService;
-import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 
 @Component
@@ -32,69 +27,48 @@ public class JwtCookiesServiceImpl implements JwtCookiesService {
     public static final String JWT_FORMAT = "%s %s";
     public static final String EMPTY_STRING = "";
     public static final String LIMIT_THE_SCOPE = "None";
+    public static final String COOKIES_NOT_PRESENT = "Cookies are not present";
+    public static final String JWT_COOKIE_NOT_FOUND = "JWT token cookie with [name %s] was not found";
 
-    @Value("${access.token.life.time}")
-    private Integer accessTokenLifeTime;
-    @Value("${refresh.token.life.time}")
-    private Integer refreshTokenLifeTime;
     @Value("${jwt.cookie.life.time}")
     private Integer jwtCookieLifeTime;
-    private final JwtService jwtService;
 
     @Override
-    public HttpHeaders issueJwtCookies(String email, Set<String> authorityNames) {
-        HttpHeaders headers = new HttpHeaders();
+    public HttpHeaders issueJwtCookies(JwtAuthenticationToken authenticationToken) {
+        final HttpHeaders headers = new HttpHeaders();
         headers.add(SET_COOKIE,
                 buildCookie(ACCESS_TOKEN,
-                        format(JWT_FORMAT, BEARER_TOKEN_TYPE,
-                                jwtService.generateToken(email, authorityNames, accessTokenLifeTime)),
+                        format(JWT_FORMAT, BEARER_PREFIX, authenticationToken.accessToken()),
                         ABSOLUTE_API_PATH, jwtCookieLifeTime));
         headers.add(SET_COOKIE,
                 buildCookie(REFRESH_TOKEN,
-                        format(JWT_FORMAT, BEARER_TOKEN_TYPE,
-                                jwtService.generateToken(email, authorityNames, refreshTokenLifeTime)),
+                        format(JWT_FORMAT, BEARER_PREFIX,
+                                authenticationToken.refreshToken()),
                         SECURITY_API_PATH, jwtCookieLifeTime));
         return headers;
     }
 
     @Override
-    public HttpHeaders refreshJwtCookies(Cookie[] cookies) {
-        final Map<String, String> jwtTokens = extractJwtTokens(cookies);
-        final String refreshToken = jwtTokens.get(REFRESH_TOKEN);
-        if (hasText(refreshToken) && !jwtService.isBlacklisted(refreshToken)) {
-            final Claims claims = jwtService.extractClaims(refreshToken);
-            jwtService.addTokenToBlacklist(refreshToken);
-            return issueJwtCookies(jwtService.extractEmail(claims), jwtService.extractAuthorityNames(claims));
-        } else {
-            return new HttpHeaders();
-        }
-    }
-
-    @Override
-    public HttpHeaders revokeJwtCookies(Cookie[] cookies) {
+    public HttpHeaders revokeJwtCookies() {
         final HttpHeaders headers = new HttpHeaders();
-        final Map<String, String> jwtTokens = extractJwtTokens(cookies);
-        final String refreshToken = jwtTokens.get(REFRESH_TOKEN);
-        if (hasText(refreshToken)) {
-            jwtService.addTokenToBlacklist(refreshToken);
-        }      
         headers.add(SET_COOKIE, buildCookie(ACCESS_TOKEN, EMPTY_STRING, ABSOLUTE_API_PATH, 0));
         headers.add(SET_COOKIE, buildCookie(REFRESH_TOKEN, EMPTY_STRING, SECURITY_API_PATH, 0));
         return headers;
     }
 
     @Override
-    public Map<String, String> extractJwtTokens(Cookie[] cookies) {
+    public String extractJwtToken(Cookie[] cookies, String cookieName) {
         if (nonNull(cookies)) {
-            return stream(cookies)
-                    .filter(cookie -> (cookie.getName().equals(ACCESS_TOKEN) || cookie.getName().equals(REFRESH_TOKEN))
-                            && startsWithIgnoreCase(cookie.getValue(), BEARER_TOKEN_TYPE))
-                    .map(cookie -> {
-                        final String jwtToken = decode(cookie.getValue().substring(7), UTF_8);
-                        return Map.entry(cookie.getName(), jwtToken);
-                    }).collect(toMap(Map.Entry::getKey, Map.Entry::getValue));
+            for (Cookie cookie : cookies) {
+                String cookieValue = cookie.getValue();
+                if (cookie.getName().equals(cookieName) && StringUtils.hasText(cookieValue)
+                        && startsWithIgnoreCase(cookieValue, BEARER_PREFIX)) {
+                    return decode(cookieValue.substring(BEARER_PREFIX.length() + 1), UTF_8);
+                }
+            }
+            throw new JwtException(format(JWT_COOKIE_NOT_FOUND, cookieName));
         } else {
-            return emptyMap();
+            throw new JwtException(COOKIES_NOT_PRESENT);
         }
     }
 
