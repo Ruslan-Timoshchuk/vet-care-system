@@ -17,13 +17,13 @@ import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.security.web.util.matcher.RequestMatcher;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 import org.springframework.web.servlet.HandlerExceptionResolver;
 import com.system.vetcare.service.AuthorityService;
 import com.system.vetcare.service.JwtClaimsExtractor;
 import com.system.vetcare.service.JwtCookiesService;
-import com.system.vetcare.service.JwtTokenBlacklistService;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 
@@ -31,7 +31,7 @@ import io.jsonwebtoken.JwtException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtTokenBlacklistService jwtTokenBlacklistService;
+    private final RequestMatcher requestMatcher;
     private final JwtClaimsExtractor jwtClaimsExtractor;
     private final JwtCookiesService jwtCookiesService;
     private final AuthorityService authorityService;
@@ -41,10 +41,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
+            if (!shouldNotFilter(request)) {
             final SecurityContext securityContext = SecurityContextHolder.getContext();
             if (isNull(securityContext.getAuthentication())) {
                 final String jwtAccessToken = jwtCookiesService.extractJwtToken(request.getCookies(), ACCESS_TOKEN);
-                if (!jwtTokenBlacklistService.isBlacklisted(jwtAccessToken)) {
                     final WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetailsSource()
                             .buildDetails(request);
                     final Authentication authentication = buildAuthenticationToken(jwtAccessToken,
@@ -58,6 +58,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
     }
 
+    @Override
+    protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+        return requestMatcher.matches(request);
+    }
+    
     private Authentication buildAuthenticationToken(String accessToken, WebAuthenticationDetails details) {
         final Claims claims = jwtClaimsExtractor.extractAccessTokenClaims(accessToken);
         final String email = jwtClaimsExtractor.extractEmail(claims);
