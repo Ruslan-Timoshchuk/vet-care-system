@@ -1,8 +1,9 @@
 package com.system.vetcare.controller;
 
-import static org.springframework.http.HttpStatus.*;
-import java.util.Set;
 import static com.system.vetcare.controller.constants.AuthenticationUrl.*;
+import static org.springframework.http.HttpStatus.*;
+import static com.system.vetcare.payload.JwtMarkers.*;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
@@ -10,6 +11,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import com.system.vetcare.domain.JwtAuthenticationToken;
 import com.system.vetcare.domain.User;
 import com.system.vetcare.payload.request.AuthenticationRequest;
 import com.system.vetcare.payload.request.RegistrationRequest;
@@ -17,7 +19,7 @@ import com.system.vetcare.payload.request.UserEmailValidationRequest;
 import com.system.vetcare.payload.response.AuthenticationResponse;
 import com.system.vetcare.payload.response.UserEmailValidationResponse;
 import com.system.vetcare.service.AuthenticationService;
-import com.system.vetcare.service.AuthorityService;
+import com.system.vetcare.service.JwtAuthenticationService;
 import com.system.vetcare.service.JwtCookiesService;
 import com.system.vetcare.service.UserService;
 import com.system.vetcare.service.UsernameValidator;
@@ -29,7 +31,7 @@ import lombok.RequiredArgsConstructor;
 public class AuthenticationController {
 
     private final UserService userService;
-    private final AuthorityService authorityService;
+    private final JwtAuthenticationService jwtAuthenticationService;
     private final JwtCookiesService jwtCookiesService;
     private final UsernameValidator usernameValidator;
     private final AuthenticationService authenticationService;
@@ -37,10 +39,10 @@ public class AuthenticationController {
     @PostMapping(USER_REGISTRATION)
     public ResponseEntity<AuthenticationResponse> performRegistration(
             @RequestBody RegistrationRequest registrationRequest) {
-        User user = userService.save(registrationRequest);
-        Set<String> authorityNames = authorityService.toAuthorityNames(user.getAuthorities());
-        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getEmail(), authorityNames);
-        AuthenticationResponse authenticationResponse = authenticationService.buildAuthenticationResponse(user);
+        final User user = userService.save(registrationRequest);
+        final JwtAuthenticationToken authenticationToken = jwtAuthenticationService.issueAuthenticationToken(user);
+        final HttpHeaders headers = jwtCookiesService.issueJwtCookies(authenticationToken);
+        final AuthenticationResponse authenticationResponse = authenticationService.buildAuthenticationResponse(user);
         return ResponseEntity
                 .status(CREATED)
                 .headers(headers)
@@ -49,10 +51,10 @@ public class AuthenticationController {
 
     @PostMapping(USER_LOGIN)
     public ResponseEntity<AuthenticationResponse> performLogIn(@RequestBody AuthenticationRequest credential) {
-        User user = authenticationService.resolvePrincipal(credential);
-        AuthenticationResponse authenticationResponse = authenticationService.buildAuthenticationResponse(user);
-        Set<String> authorityNames = authorityService.toAuthorityNames(user.getAuthorities());
-        HttpHeaders headers = jwtCookiesService.issueJwtCookies(user.getEmail(), authorityNames);
+        final User user = authenticationService.resolvePrincipal(credential); 
+        final JwtAuthenticationToken authenticationToken = jwtAuthenticationService.issueAuthenticationToken(user);
+        final HttpHeaders headers = jwtCookiesService.issueJwtCookies(authenticationToken);
+        final AuthenticationResponse authenticationResponse = authenticationService.buildAuthenticationResponse(user);
         return ResponseEntity.ok()
                 .headers(headers)
                 .body(authenticationResponse);
@@ -60,16 +62,22 @@ public class AuthenticationController {
     
     @PostMapping(REFRESH_JWT_TOKEN)
     public ResponseEntity<Void> performRefreshToken(HttpServletRequest request) {
-        HttpHeaders headers = jwtCookiesService.refreshJwtCookies(request.getCookies());
-        return ResponseEntity.ok()
-                .headers(headers)
-                .build();
+        final String jwtRefreshToken = jwtCookiesService.extractJwtToken(request.getCookies(), REFRESH_TOKEN);
+        final JwtAuthenticationToken authenticationToken = jwtAuthenticationService.refreshAuthenticationToken(jwtRefreshToken);
+        final HttpHeaders headers = jwtCookiesService.issueJwtCookies(authenticationToken);
+        return ResponseEntity
+                 .ok()
+                 .headers(headers)
+                 .build();
     }
 
     @PostMapping(USER_LOGOUT)
     public ResponseEntity<Void> performLogOut(HttpServletRequest request) {
         authenticationService.revokePrincipalAuthentication();
-        HttpHeaders headers = jwtCookiesService.revokeJwtCookies(request.getCookies());
+        final Cookie[] cookies = request.getCookies();
+        final HttpHeaders headers = jwtCookiesService.revokeJwtCookies();
+        final String jwtRefreshToken = jwtCookiesService.extractJwtToken(cookies, REFRESH_TOKEN);
+        jwtAuthenticationService.revokeAuthenticationToken(jwtRefreshToken);
         return ResponseEntity
                 .status(NO_CONTENT)
                 .headers(headers)

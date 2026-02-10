@@ -9,4 +9,6 @@ public interface JwtAuthenticationService {
 
     JwtAuthenticationToken refreshAuthenticationToken(String jwtRefreshToken);
 
+    void revokeAuthenticationToken(String jwtRefreshToken);
+
 }

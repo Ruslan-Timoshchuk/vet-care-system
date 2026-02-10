@@ -48,4 +48,9 @@ public class JwtAuthenticationServiceImpl implements JwtAuthenticationService {
         }
     }
     
+    @Override
+    public void revokeAuthenticationToken(String jwtRefreshToken) {
+        jwtTokenBlacklistService.addTokenToBlacklist(jwtRefreshToken);
+    }
+    
 }
