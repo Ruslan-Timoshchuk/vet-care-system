@@ -31,7 +31,7 @@ import io.jsonwebtoken.JwtException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final RequestMatcher requestMatcher;
+    private final RequestMatcher publicEndpointsMatcher;
     private final JwtClaimsExtractor jwtClaimsExtractor;
     private final JwtCookiesService jwtCookiesService;
     private final AuthorityService authorityService;
@@ -41,16 +41,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain) throws ServletException, IOException {
         try {
-            if (!shouldNotFilter(request)) {
             final SecurityContext securityContext = SecurityContextHolder.getContext();
-            if (isNull(securityContext.getAuthentication())) {
+            if (!shouldNotFilter(request) && isNull(securityContext.getAuthentication())) {
                 final String jwtAccessToken = jwtCookiesService.extractJwtToken(request.getCookies(), ACCESS_TOKEN);
-                    final WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetailsSource()
-                            .buildDetails(request);
-                    final Authentication authentication = buildAuthenticationToken(jwtAccessToken,
-                            webAuthenticationDetails);
-                    securityContext.setAuthentication(authentication);
-                }
+                final WebAuthenticationDetails webAuthenticationDetails = new WebAuthenticationDetailsSource()
+                        .buildDetails(request);
+                final Authentication authentication = buildAuthenticationToken(jwtAccessToken,
+                        webAuthenticationDetails);
+                securityContext.setAuthentication(authentication);
             }
             filterChain.doFilter(request, response);
         } catch (JwtException e) {
@@ -60,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        return requestMatcher.matches(request);
+        return publicEndpointsMatcher.matches(request);
     }
     
     private Authentication buildAuthenticationToken(String accessToken, WebAuthenticationDetails details) {
