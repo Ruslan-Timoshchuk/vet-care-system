@@ -55,7 +55,8 @@ public class AuthenticationController {
         final JwtAuthenticationToken authenticationToken = jwtAuthenticationService.issueAuthenticationToken(user);
         final HttpHeaders headers = jwtCookiesService.issueJwtCookies(authenticationToken);
         final AuthenticationResponse authenticationResponse = authenticationService.buildAuthenticationResponse(user);
-        return ResponseEntity.ok()
+        return ResponseEntity
+                .ok()
                 .headers(headers)
                 .body(authenticationResponse);
     }
@@ -74,8 +75,8 @@ public class AuthenticationController {
     @PostMapping(USER_LOGOUT)
     public ResponseEntity<Void> performLogOut(HttpServletRequest request) {
         authenticationService.revokePrincipalAuthentication();
-        final Cookie[] cookies = request.getCookies();
         final HttpHeaders headers = jwtCookiesService.revokeJwtCookies();
+        final Cookie[] cookies = request.getCookies();
         final String jwtRefreshToken = jwtCookiesService.extractJwtToken(cookies, REFRESH_TOKEN);
         jwtAuthenticationService.revokeAuthenticationToken(jwtRefreshToken);
         return ResponseEntity
